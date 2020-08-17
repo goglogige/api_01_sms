@@ -1,33 +1,52 @@
 import os
 import time
+import logging
 
 import requests
 from twilio.rest import Client
 from dotenv import load_dotenv
 
 
+logging.basicConfig(
+    filename='homework.log',
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%m/%d/%Y %I:%M:%S %p',
+    level=logging.INFO,
+)
+
+
+load_dotenv()
+v = os.getenv('V_VALUE')
+token = os.getenv('VK_TOKEN')
+account_sid = os.getenv('ACCOUNT_SID')
+auth_token = os.getenv('AUTH_TOKEN')
+from_value = os.getenv('NUMBER_FROM')
+to_value = os.getenv('NUMBER_TO')
+
+client = Client(account_sid, auth_token)
+
+
 def get_status(user_id):
-    load_dotenv()
-    token = os.getenv('vk_token')
+    vk_method = 'users.get'
     data = {
         'user_ids': user_id,
         'fields': 'online',
-        'v': '5.92',
+        'v': v,
         'access_token': token,
     }
-    response = requests.post('https://api.vk.com/method/users.get', params=data)
-    user_info = response.json()['response'][0]
-    online_status = user_info['online']
-    return online_status
+    try:
+        response = requests.post(f'https://api.vk.com/method/{vk_method}', params=data)
+        user_info = response.json()['response'][0]
+        online_status = user_info['online']
+    except (ValueError, KeyError) as error:
+        logging.error(error)
+        return error
+    else:
+        logging.info("Success, it's work!")
+        return online_status
 
 
 def sms_sender(sms_text):
-    load_dotenv()
-    account_sid = os.getenv('account_sid')
-    auth_token = os.getenv('auth_token')
-    from_value = os.getenv('NUMBER_FROM')
-    to_value = os.getenv('NUMBER_TO')
-    client = Client(account_sid, auth_token)
     message = client.messages \
         .create(
             body=sms_text,
